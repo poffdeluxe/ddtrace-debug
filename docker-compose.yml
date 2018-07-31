@@ -1,0 +1,39 @@
+version: '3'
+
+networks:
+  backend:
+
+services:
+  consumer:
+    build: .
+    depends_on:
+      - db
+      - datadog-agent
+    networks:
+      - backend
+    volumes:
+      - .:/app
+    command: ddtrace-run python3 main.py
+    env_file:
+      - consumer.env
+
+  datadog-agent:
+    image: datadog/agent:latest
+    environment:
+     - DD_API_KEY=
+     - DD_APM_ENABLED=true
+    volumes:
+     - /var/run/docker.sock:/var/run/docker.sock:ro
+     - /proc/:/host/proc/:ro
+     - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
+    networks:
+      - backend
+
+  db:
+    image: postgres
+    env_file:
+      - consumer.env
+    networks:
+      - backend
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
